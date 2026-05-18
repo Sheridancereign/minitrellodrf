@@ -1,9 +1,9 @@
 from rest_framework import generics
 
 from boards.dto.task_dto import CreateTaskDTO, UpdateTaskDTO
-from boards.models import Board, Task
+from boards.models import Board, Task, TaskActivity
 from boards.permissions import IsBoardOwner
-from boards.serializers import BoardSerializer, TaskSerializer
+from boards.serializers import BoardSerializer, TaskSerializer, TaskActivitySerializer
 from boards.services.task_service import TaskService
 
 
@@ -11,10 +11,17 @@ class BoardListCreateView(generics.ListCreateAPIView):
     serializer_class = BoardSerializer
 
     def get_queryset(self):
-        return Board.objects.filter(owner=self.request.user)
+        return Board.objects.filter(
+            owner=self.request.user
+        )
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+
+        board = serializer.save(
+            owner=self.request.user
+        )
+
+        board.members.add(self.request.user)
 
 
 class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -69,3 +76,14 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
 
         serializer.instance = task
+
+class TaskActivityListView(generics.ListAPIView):
+    serializer_class = TaskActivitySerializer
+
+    def get_queryset(self):
+        return TaskActivity.objects.filter(
+            task__board__owner=self.request.user
+        ).select_related(
+            "actor",
+            "task",
+        )

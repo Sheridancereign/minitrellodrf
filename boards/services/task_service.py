@@ -1,8 +1,11 @@
 from datetime import date
 
-from boards.dto.task_dto import CreateTaskDTO,UpdateTaskDTO
+from boards.dto.task_dto import CreateTaskDTO, UpdateTaskDTO
 from boards.exceptions import TaskDomainException
-from boards.models import Task
+from boards.models import Task, TaskActivity
+from boards.services.activity_service import (
+    ActivityService,
+)
 
 
 class TaskService:
@@ -50,11 +53,15 @@ class TaskService:
             created_by=user,
         )
 
+        ActivityService.log_task_created(
+            task=task,
+            actor=user,
+        )
+
         return task
 
-
     @staticmethod
-    def update_task(*,task: Task, dto: UpdateTaskDTO):
+    def update_task(*, task: Task, dto: UpdateTaskDTO):
 
         if task.status == Task.Status.DONE:
             raise TaskDomainException(
@@ -87,6 +94,28 @@ class TaskService:
                 exclude_unset=True
         ).items():
             setattr(task, field, value)
+
+        if dto.status and dto.status != task.status:
+            ActivityService.log_field_change(
+                task=task,
+                actor=task.created_by,
+                field="status",
+                old_value=task.status,
+                new_value=dto.status,
+                action=TaskActivity.Action.STATUS_CHANGED,
+            )
+        if (
+                dto.assignee
+                and dto.assignee != task.assignee
+        ):
+            ActivityService.log_field_change(
+                task=task,
+                actor=task.created_by,
+                field="assignee",
+                old_value=dto.assignee,
+                new_value=dto.assignee,
+                action=TaskActivity.Action.STATUS_CHANGED,
+            )
 
         task.save()
 
