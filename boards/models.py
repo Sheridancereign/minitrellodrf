@@ -89,13 +89,45 @@ class Task(models.Model):
 
 
 
+class TaskActivity(models.Model):
+    class Action(models.TextChoices):
+        CREATED = "CREATED", "Created",
+        STATUS_CHANGED = "STATUS_CHANGED", "Status Changed",
+        ASSIGNEE_CHANGED = "ASSIGNEE_CHANGED", "Assignee Changed",
+        UPDATED = "UPDATED", "Updated"
 
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="activities",
+    )
 
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
 
+    action = models.CharField(
+        max_length=20,
+        choices=Action.choices,
+    )
 
+    field = models.CharField(
+        max_length=20,
+        choices=Action.choices,
+    )
 
-
-
+    old_value = models.CharField(
+        blank=True,
+    )
+    new_value = models.CharField(
+        blank=True,
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+    def __str__(self):
+        return f"{self.action} - {self.task.title}"
 
 
 

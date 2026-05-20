@@ -1,6 +1,6 @@
 from pygments.lexers import data
 from rest_framework import serializers
-from boards.models import Board, Task
+from boards.models import Board, Task,TaskActivity
 
 
 class BoardSerializer(serializers.ModelSerializer):
@@ -35,4 +35,16 @@ class TaskSerializer(serializers.ModelSerializer):
             "created_by",
         )
 
-
+class TaskActivitySerializer(serializers.ModelSerializer):
+    actor = serializers.ReadOnlyField(source='actor.username')
+    class Meta:
+        model = TaskActivity
+        fields = (
+            "id",
+            "action",
+            "field",
+            "old_value",
+            "new_value",
+            "actor",
+            "created_at",
+        )
