@@ -35,7 +35,7 @@ class Task(models.Model):
 
     class Priority(models.TextChoices):
         LOW = "LOW", "Low"
-        MEDIUM = "Medium", "Medium"
+        MEDIUM = "MEDIUM", "Medium"
         HIGH = "HIGH", "High"
 
     title = models.CharField(max_length=120)
@@ -87,13 +87,20 @@ class Task(models.Model):
         return self.title
 
 
-
-
 class TaskActivity(models.Model):
     class Action(models.TextChoices):
-        CREATED = "CREATED", "Created",
-        STATUS_CHANGED = "STATUS_CHANGED", "Status Changed",
-        ASSIGNEE_CHANGED = "ASSIGNEE_CHANGED", "Assignee Changed",
+        CREATED = (
+            "CREATED",
+            "Created",
+        )
+        STATUS_CHANGED = (
+            "STATUS_CHANGED",
+            "Status Changed",
+        )
+        ASSIGNEE_CHANGED = (
+            "ASSIGNEE_CHANGED",
+            "Assignee Changed",
+        )
         UPDATED = "UPDATED", "Updated"
 
     task = models.ForeignKey(
@@ -123,15 +130,7 @@ class TaskActivity(models.Model):
     new_value = models.CharField(
         blank=True,
     )
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self):
         return f"{self.action} - {self.task.title}"
-
-
-
-
-
-
-
