@@ -83,7 +83,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
      "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "mini_trello",
+        "NAME": "minitrello",
         "USER": "postgres",
         "PASSWORD": "2991",
         "HOST": "localhost",

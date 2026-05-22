@@ -18,6 +18,7 @@ class Board(models.Model):
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name="members_boards",
+        through="BoardMembership",
         blank=True,
     )
 
@@ -121,16 +122,49 @@ class TaskActivity(models.Model):
 
     field = models.CharField(
         max_length=20,
-        choices=Action.choices,
+        blank=True,
     )
 
     old_value = models.CharField(
+        max_length=255,
         blank=True,
     )
     new_value = models.CharField(
+        max_length=255,
         blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.action} - {self.task.title}"
+
+
+class BoardMembership(models.Model):
+    class Role(models.TextChoices):
+        OWNER = "OWNER", "Owner"
+        MANAGER = "MANAGER", "Manager"
+        MEMBER = "MEMBER", "Member"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+
+    board = models.ForeignKey(
+        Board,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=Role.choices,
+        default=Role.MEMBER,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "board")
+
+    def __str__(self):
+        return f"{self.user} - {self.board} - {self.role}"
