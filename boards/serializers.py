@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
-from boards.models import Board, Task, TaskActivity
+from boards.dto.task_dto import CreateTaskDTO, UpdateTaskDTO
+from boards.models import Board, BoardMembership, Task, TaskActivity
+from boards.services import task_service
 
 
 class BoardSerializer(serializers.ModelSerializer):
@@ -15,6 +17,19 @@ class BoardSerializer(serializers.ModelSerializer):
             "owner",
             "created_at",
         )
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+
+        board = Board.objects.create(owner=user, **validated_data)
+
+        BoardMembership.objects.create(
+            board=board,
+            user=user,
+            role=BoardMembership.Role.OWNER,
+        )
+
+        return board
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -33,6 +48,27 @@ class TaskSerializer(serializers.ModelSerializer):
             "assignee",
             "created_at",
             "created_by",
+        )
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+
+        dto = CreateTaskDTO(**validated_data)
+
+        return task_service.create_task(
+            dto=dto,
+            user=user,
+        )
+
+    def update(self, instance, validated_data):
+        user = self.context["request"].user
+
+        dto = UpdateTaskDTO(**validated_data)
+
+        return task_service.update_task(
+            task=instance,
+            dto=dto,
+            actor=user,
         )
 
 

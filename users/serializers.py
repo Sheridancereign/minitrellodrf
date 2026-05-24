@@ -5,11 +5,13 @@ from users.services import user_service
 
 user_model = get_user_model()
 
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=4)
+
     class Meta:
         model = user_model
-        fields = ('id','username','last_name', 'email', 'password')
+        fields = ("id", "username", "last_name", "email", "password")
 
     def create(self, validated_data):
         return user_service.create_user(
