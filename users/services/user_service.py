@@ -14,7 +14,7 @@ def create_user(*, username, last_name, email, password):
         password=password,
     )
 
-    member_group = Group.objects.get(name=PermissionGroups.MEMBER)
+    member_group, _ = Group.objects.get_or_create(name=PermissionGroups.MEMBER)
     user.groups.add(member_group)
 
     return user

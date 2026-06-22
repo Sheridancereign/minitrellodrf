@@ -28,6 +28,21 @@ tasks, task assignment, role-based permissions, and task activity tracking.
 - Role setup command for `SUPER_ADMIN`, `MANAGER`, and `MEMBER`
 - Swagger/OpenAPI documentation
 - Environment-based settings via `.env`
+- Docker and Docker Compose setup for local development
+- GitHub Actions CI for checks, linting, and tests
+
+## Portfolio Highlights
+
+This project is designed to demonstrate backend skills that are useful in real
+business applications:
+
+- service-layer business logic instead of putting rules directly in views
+- role-based access control using Django groups and permissions
+- PostgreSQL-backed relational modeling
+- query-aware API views with `select_related`
+- activity/audit logging for important domain events
+- reproducible local setup with Docker Compose
+- documented API surface with Swagger and curl examples
 
 ## Project Structure
 
@@ -44,6 +59,9 @@ MiniTrello/
 ├── config/
 │   ├── settings.py             # Django settings
 │   └── urls.py                 # Root URL configuration
+├── docs/
+│   ├── architecture.md         # Architecture overview
+│   └── api-examples.md         # Example API requests
 ├── tests/                      # pytest test suite
 ├── users/
 │   ├── management/commands/
@@ -54,6 +72,8 @@ MiniTrello/
 │   ├── urls.py
 │   └── views.py
 ├── manage.py
+├── Dockerfile
+├── docker-compose.yml
 ├── pyproject.toml
 └── pytest.ini
 ```
@@ -66,16 +86,19 @@ file. Create `.env` in the project root:
 ```env
 SECRET_KEY=change-me
 DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174
 
 DB_NAME=minitrello
 DB_USER=postgres
-DB_PASSWORD=change-me
+DB_PASSWORD=postgres
 DB_HOST=localhost
 DB_PORT=5432
 ```
 
 `SECRET_KEY`, database credentials, and other local secrets should not be
 committed to Git. The repository `.gitignore` already ignores `.env` files.
+Use `.env.example` as a safe template for local configuration.
 
 ## Installation
 
@@ -120,6 +143,27 @@ poetry run python manage.py runserver
 ```
 
 The API will be available at:
+
+```text
+http://127.0.0.1:8000/
+```
+
+## Docker Setup
+
+For a containerised local environment, copy the example environment file and
+adjust values if needed:
+
+```powershell
+copy .env.example .env
+```
+
+Build and start the application with PostgreSQL:
+
+```powershell
+docker compose up --build
+```
+
+The `web` service runs migrations, configures roles, and starts Django at:
 
 ```text
 http://127.0.0.1:8000/
@@ -308,6 +352,21 @@ Run pre-commit hooks:
 
 ```powershell
 poetry run pre-commit run --all-files
+```
+
+## Architecture
+
+The project keeps business logic in services instead of placing it directly in
+views. A detailed architecture note is available in:
+
+```text
+docs/architecture.md
+```
+
+Example API requests are available in:
+
+```text
+docs/api-examples.md
 ```
 
 ## Testing
