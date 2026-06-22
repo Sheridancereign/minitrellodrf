@@ -1,8 +1,11 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from boards.dto.task_dto import CreateTaskDTO, UpdateTaskDTO
 from boards.models import Board, BoardMembership, Task, TaskActivity
-from boards.services import task_service
+from boards.services import board_service, task_service
+
+user_model = get_user_model()
 
 
 class BoardSerializer(serializers.ModelSerializer):
@@ -26,7 +29,6 @@ class BoardSerializer(serializers.ModelSerializer):
         BoardMembership.objects.create(
             board=board,
             user=user,
-            role=BoardMembership.Role.OWNER,
         )
 
         return board
@@ -55,21 +57,27 @@ class TaskSerializer(serializers.ModelSerializer):
 
         dto = CreateTaskDTO(**validated_data)
 
-        return task_service.create_task(
-            dto=dto,
-            user=user,
-        )
+        try:
+            return task_service.create_task(
+                dto=dto,
+                user=user,
+            )
+        except ValueError as exc:
+            raise serializers.ValidationError({"detail": str(exc)}) from exc
 
     def update(self, instance, validated_data):
         user = self.context["request"].user
 
         dto = UpdateTaskDTO(**validated_data)
 
-        return task_service.update_task(
-            task=instance,
-            dto=dto,
-            actor=user,
-        )
+        try:
+            return task_service.update_task(
+                task=instance,
+                dto=dto,
+                actor=user,
+            )
+        except ValueError as exc:
+            raise serializers.ValidationError({"detail": str(exc)}) from exc
 
 
 class TaskActivitySerializer(serializers.ModelSerializer):
@@ -84,5 +92,45 @@ class TaskActivitySerializer(serializers.ModelSerializer):
             "old_value",
             "new_value",
             "actor",
+            "created_at",
+        )
+
+
+class AssignTaskSerializer(serializers.Serializer):
+    assignee = serializers.PrimaryKeyRelatedField(
+        queryset=user_model.objects.all(),
+        allow_null=True,
+        required=True,
+    )
+
+
+class BoardMemberAssignSerializer(serializers.Serializer):
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=user_model.objects.all(),
+        required=True,
+    )
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        board = self.context["board"]
+
+        try:
+            return board_service.assign_board_member(
+                board=board,
+                user=validated_data["user"],
+                actor=request.user,
+            )
+        except ValueError as exc:
+            raise serializers.ValidationError({"detail": str(exc)}) from exc
+
+
+class BoardMembershipSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = BoardMembership
+        fields = (
+            "id",
+            "user",
             "created_at",
         )

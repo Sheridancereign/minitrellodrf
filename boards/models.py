@@ -24,6 +24,11 @@ class Board(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        permissions = [
+            ("manage_board_members", "Can manage board members"),
+        ]
+
     def __str__(self):
         return self.title
 
@@ -70,7 +75,7 @@ class Task(models.Model):
 
     assignee = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="assigned_tasks",
@@ -86,6 +91,11 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+
+    class Meta:
+        permissions = [
+            ("assign_task", "Can assign task"),
+        ]
 
 
 class TaskActivity(models.Model):
@@ -140,11 +150,6 @@ class TaskActivity(models.Model):
 
 
 class BoardMembership(models.Model):
-    class Role(models.TextChoices):
-        OWNER = "OWNER", "Owner"
-        MANAGER = "MANAGER", "Manager"
-        MEMBER = "MEMBER", "Member"
-
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -155,16 +160,10 @@ class BoardMembership(models.Model):
         on_delete=models.CASCADE,
         related_name="memberships",
     )
-    role = models.CharField(
-        max_length=20,
-        choices=Role.choices,
-        default=Role.MEMBER,
-    )
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("user", "board")
 
     def __str__(self):
-        return f"{self.user} - {self.board} - {self.role}"
+        return f"{self.user} - {self.board}"

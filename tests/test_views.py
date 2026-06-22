@@ -2,7 +2,8 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
-from boards.models import TaskActivity
+from boards.models import BoardMembership, TaskActivity
+from users.permissions import PermissionGroups
 
 pytestmark = pytest.mark.django_db
 
@@ -89,6 +90,79 @@ def test_delete_board_unauthorized(authenticated_client_another, board):
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+def test_assign_board_member_as_manager(
+    authenticated_client,
+    board,
+    board_member_user,
+    user,
+    grant_role,
+):
+    grant_role(user, PermissionGroups.MANAGER)
+    url = reverse("boards:board-member-assign", kwargs={"pk": board.pk})
+    data = {"user": board_member_user.id}
+
+    response = authenticated_client.post(url, data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["user"] == board_member_user.id
+    assert BoardMembership.objects.filter(
+        board=board,
+        user=board_member_user,
+    ).exists()
+
+
+def test_assign_board_member_as_another_manager(
+    authenticated_client_another,
+    board,
+    another_user,
+    board_member_user,
+    grant_role,
+):
+    grant_role(another_user, PermissionGroups.MANAGER)
+    BoardMembership.objects.create(
+        board=board,
+        user=another_user,
+    )
+    url = reverse("boards:board-member-assign", kwargs={"pk": board.pk})
+    data = {"user": board_member_user.id}
+
+    response = authenticated_client_another.post(url, data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["user"] == board_member_user.id
+
+
+def test_assign_board_member_as_superuser(
+    authenticated_client_superuser,
+    board,
+    board_member_user,
+):
+    url = reverse("boards:board-member-assign", kwargs={"pk": board.pk})
+    data = {"user": board_member_user.id}
+
+    response = authenticated_client_superuser.post(url, data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["user"] == board_member_user.id
+
+
+def test_assign_board_member_denies_regular_member(
+    authenticated_client_another,
+    board,
+    another_user,
+):
+    BoardMembership.objects.create(
+        board=board,
+        user=another_user,
+    )
+    url = reverse("boards:board-member-assign", kwargs={"pk": board.pk})
+    data = {"user": another_user.id}
+
+    response = authenticated_client_another.post(url, data)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
 def test_list_tasks(authenticated_client, task):
     url = reverse("boards:task-list")
 
@@ -173,6 +247,114 @@ def test_delete_task_unauthorized(authenticated_client_another, task):
     response = authenticated_client_another.delete(url)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_assign_task_as_manager(
+    authenticated_client,
+    task,
+    another_user,
+    user,
+    grant_role,
+):
+    grant_role(user, PermissionGroups.MANAGER)
+    BoardMembership.objects.create(
+        board=task.board,
+        user=another_user,
+    )
+    url = reverse("boards:task-assign", kwargs={"pk": task.pk})
+    data = {"assignee": another_user.id}
+
+    response = authenticated_client.post(url, data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["assignee"] == another_user.id
+
+
+def test_assign_task_as_another_manager(
+    authenticated_client_another,
+    task,
+    another_user,
+    grant_role,
+):
+    grant_role(another_user, PermissionGroups.MANAGER)
+    BoardMembership.objects.create(
+        board=task.board,
+        user=another_user,
+    )
+    url = reverse("boards:task-assign", kwargs={"pk": task.pk})
+    data = {"assignee": another_user.id}
+
+    response = authenticated_client_another.post(url, data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["assignee"] == another_user.id
+
+
+def test_assign_task_as_superuser(
+    authenticated_client_superuser,
+    task,
+    another_user,
+):
+    BoardMembership.objects.create(
+        board=task.board,
+        user=another_user,
+    )
+    url = reverse("boards:task-assign", kwargs={"pk": task.pk})
+    data = {"assignee": another_user.id}
+
+    response = authenticated_client_superuser.post(url, data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["assignee"] == another_user.id
+
+
+def test_assign_task_denies_regular_member(
+    authenticated_client_another,
+    task,
+    another_user,
+):
+    BoardMembership.objects.create(
+        board=task.board,
+        user=another_user,
+    )
+    url = reverse("boards:task-assign", kwargs={"pk": task.pk})
+    data = {"assignee": another_user.id}
+
+    response = authenticated_client_another.post(url, data)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def test_assign_task_denies_non_member_assignee(
+    authenticated_client,
+    task,
+    another_user,
+    user,
+    grant_role,
+):
+    grant_role(user, PermissionGroups.MANAGER)
+    url = reverse("boards:task-assign", kwargs={"pk": task.pk})
+    data = {"assignee": another_user.id}
+
+    response = authenticated_client.post(url, data)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def test_assign_task_can_clear_assignee(
+    authenticated_client,
+    task,
+    user,
+    grant_role,
+):
+    grant_role(user, PermissionGroups.MANAGER)
+    url = reverse("boards:task-assign", kwargs={"pk": task.pk})
+    data = {"assignee": None}
+
+    response = authenticated_client.post(url, data, format="json")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["assignee"] is None
 
 
 def test_list_activities(authenticated_client, task, user):

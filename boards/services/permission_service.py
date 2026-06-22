@@ -1,26 +1,22 @@
-from boards.models import BoardMembership
+def can_manage_board_members(*, user):
+    return user.is_superuser or user.has_perm("boards.manage_board_members")
 
 
-def get_membership(*, user, board):
-    return BoardMembership.objects.filter(
-        user=user,
-        board=board,
-    ).first()
+def can_assign_task(*, user):
+    return user.is_superuser or user.has_perm("boards.assign_task")
 
 
-def can_assign_task(*, user, board):
-    if user.is_superuser:
-        return True
+def can_create_board(*, user):
+    return user.is_superuser or user.has_perm("boards.add_board")
 
-    membership = get_membership(
-        user=user,
-        board=board,
-    )
 
-    if not membership:
-        return False
+def can_view_board(*, user):
+    return user.is_superuser or user.has_perm("boards.view_board")
 
-    return membership.role in (
-        BoardMembership.Role.OWNER,
-        BoardMembership.Role.MANAGER,
-    )
+
+def can_create_task(*, user):
+    return user.is_superuser or user.has_perm("boards.add_task")
+
+
+def can_change_task(*, user):
+    return user.is_superuser or user.has_perm("boards.change_task")

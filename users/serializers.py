@@ -20,3 +20,18 @@ class RegisterSerializer(serializers.ModelSerializer):
             email=validated_data["email"],
             password=validated_data["password"],
         )
+
+
+class UserSerializer(serializers.ModelSerializer):
+    is_super_admin = serializers.SerializerMethodField()
+    is_manager = serializers.SerializerMethodField()
+
+    class Meta:
+        model = user_model
+        fields = ("id", "username", "email", "is_super_admin", "is_manager")
+
+    def get_is_super_admin(self, obj):
+        return obj.is_superuser or obj.groups.filter(name="SUPER_ADMIN").exists()
+
+    def get_is_manager(self, obj):
+        return obj.groups.filter(name="MANAGER").exists()

@@ -23,7 +23,6 @@ def test_board_members(board, user, another_user):
     BoardMembership.objects.create(
         board=board,
         user=another_user,
-        role=BoardMembership.Role.MEMBER,
     )
 
     assert user in board.members.all()
@@ -41,7 +40,6 @@ def test_board_membership_is_unique(board, user):
         BoardMembership.objects.create(
             board=board,
             user=user,
-            role=BoardMembership.Role.MEMBER,
         )
 
 
